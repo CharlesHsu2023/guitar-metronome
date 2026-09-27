@@ -162,9 +162,10 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-b
       <aside class="guide">
         <h2>對拍步驟</h2>
         <ol>
-          <li>播放影片，跟著大鼓或小鼓按 <b>TAP</b>（或鍵盤 <kbd>T</kbd>）連敲 8 下以上，BPM 會自動算出來。</li>
-          <li>把影片停在第一個重拍（通常是鼓或主歌第一個和弦進來的那一下），按 <b>設為第 1 拍</b>（<kbd>B</kbd>）。</li>
-          <li>播放聽聽看，用 ±10 ms 微調，直到節拍器和鼓聲疊在一起。</li>
+          <li>播放影片，等到某一小節的<b>第 1 拍</b>（例如主歌第一個和弦進來那一下），從那一下開始跟著鼓點按 <b>TAP</b>（或鍵盤 <kbd>T</kbd>），連敲 8 下以上。</li>
+          <li>停手約 1.5 秒後節拍器會開始響，BPM 和第 1 拍都已經照你的敲擊對好。敲越多下越準。</li>
+          <li>還差一點就用 ±10 ms 微調：節拍器比鼓聲早就按「+」，晚就按「−」。</li>
+          <li>老歌沒跟 click 錄，後段可能慢慢飄掉。到新段落從第 1 拍再敲一輪就會重新對齊。</li>
           <li>想放慢練習就切 0.75× 或 0.5×，節拍器會跟著一起變慢。</li>
         </ol>
       </aside>
@@ -180,7 +181,7 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-b
 
       <div class="sec">
         <div class="sec-head"><span class="sec-label">BPM</span><span class="muted" id="eff">原速</span></div>
-        <input id="bpm" class="bpm-input" type="number" step="0.1" min="30" max="300" inputmode="decimal" aria-label="每分鐘拍數">
+        <input id="bpm" class="bpm-input" type="number" step="0.01" min="30" max="300" inputmode="decimal" aria-label="每分鐘拍數">
         <div class="row">
           <button class="btn" type="button" data-bpm="-1">−1</button>
           <button class="btn" type="button" data-bpm="-0.1">−0.1</button>
@@ -188,7 +189,7 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-b
           <button class="btn" type="button" data-bpm="1">+1</button>
         </div>
         <button class="tap" id="tap" type="button">TAP <small>(T)</small></button>
-        <p class="hint" id="tapInfo">跟著鼓點連敲 8 下以上，越多下越準。</p>
+        <p class="hint" id="tapInfo">播放中從第 1 拍開始敲，會同時對齊 BPM 和第 1 拍。</p>
         <p class="note" id="note" hidden></p>
       </div>
 
@@ -216,7 +217,7 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-b
           <button class="btn" type="button" data-off="0.01">+10ms</button>
           <button class="btn" type="button" data-off="0.05">+50ms</button>
         </div>
-        <p class="hint">節拍器從這一點開始響。節拍器比鼓聲早就按「+」，晚就按「−」。樂團沒錄 click 的老歌可能會慢慢飄，到新段落再按一次 B 重新對齊。</p>
+        <p class="hint">節拍器從這一點開始響。用 TAP 敲會自動設定；也可以暫停在第 1 拍按 B。節拍器比鼓聲早就按「+」，晚就按「−」。</p>
       </div>
 
       <div class="sec">
@@ -248,7 +249,7 @@ const $ = s => document.querySelector(s);
 /* ---------- 參考資料 ---------- */
 const PRESETS = {
   qu_FSptjRic: { bpm:77, bpb:4, offset:0,
-    note:'參考值：海闊天空約 77 BPM、4/4 拍、F 調。MV 版本可能略有差異，請再用 TAP 校正，並設定第 1 拍。' }
+    note:'參考值：海闊天空約 77 BPM、4/4 拍、F 調。第 1 拍位置還沒設定，請在播放中從第 1 拍開始敲 TAP。' }
 };
 const DEFAULT_ID = 'qu_FSptjRic';
 
@@ -262,8 +263,8 @@ const G = Object.assign({ sound:'wood', vol:0.8, accent:true, metroOn:true }, lo
 let videoId = load('ytm:last', DEFAULT_ID) || DEFAULT_ID;
 let player = null, playerReady = false, state = -1;
 let ctx = null, master = null, noise = null;
-let anchorV = null, anchorA = 0, anchorRate = 1, lastRaw = null, lastBeat = null;
-let visQ = [], scheduled = [], taps = [], tapBase = null;
+let anchorV = null, anchorA = 0, anchorRate = 1, lastRaw = null, lastBeat = null, nUpd = 0;
+let visQ = [], scheduled = [], taps = [], tapBase = null, tapTotal = 0;
 let loopA = null, loopB = null;
 const PLAYING = 1;
 
@@ -349,11 +350,12 @@ function videoNow(){
   const raw = player.getCurrentTime();
   if(!isPlaying() || !ctx || ctx.state !== 'running') return raw;
   const a = ctx.currentTime, r = rate();
-  if(anchorV === null || r !== anchorRate){ anchorV = raw; anchorA = a; anchorRate = r; lastRaw = raw; return raw; }
+  if(anchorV === null || r !== anchorRate){ anchorV = raw; anchorA = a; anchorRate = r; lastRaw = raw; nUpd = 0; return raw; }
   if(raw !== lastRaw){
     const diff = raw - (anchorV + (a - anchorA) * r);
-    if(Math.abs(diff) > 0.25){ softReset(); anchorV = raw; anchorA = a; lastRaw = raw; return raw; }
-    anchorV += diff * 0.08; lastRaw = raw;
+    if(Math.abs(diff) > 0.25){ softReset(); anchorV = raw; anchorA = a; lastRaw = raw; nUpd = 0; return raw; }
+    // 剛播放／跳轉後快速收斂（前幾次取平均），之後改成緩慢修正，避免抖動
+    anchorV += diff * Math.max(0.05, 1 / (++nUpd + 1)); lastRaw = raw;
   }
   return anchorV + (a - anchorA) * r;
 }
@@ -373,7 +375,7 @@ function tick(){
     if(bt >= horizon) break;
     const when = now + (bt - vt) / r;
     if(when >= now - 0.02){
-      if(G.metroOn) click(Math.max(when, now), k);
+      if(G.metroOn && performance.now() > tapHoldUntil) click(Math.max(when, now), k);
       visQ.push({ when, k });
     }
     lastBeat = k; k++;
@@ -435,6 +437,7 @@ function showTitle(){
 }
 let lastTimeStr = '';
 function frame(){
+  if(isPlaying() && ctx && ctx.state === 'running'){ try{ videoNow(); }catch(e){} } // 更頻繁地讀取影片時間，修正更即時
   if(ctx && visQ.length){
     const now = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
     while(visQ.length && visQ[0].when <= now) flash(visQ.shift().k);
@@ -451,11 +454,12 @@ function frame(){
 requestAnimationFrame(frame);
 
 /* ---------- 設定 ---------- */
-function setBpm(v){
-  v = Math.round(v * 10) / 10;
+function setBpm(v, keepPhase){
+  v = Math.round(v * 100) / 100;
   if(!isFinite(v)) return;
   S.bpm = Math.min(300, Math.max(30, v));
-  softReset(); renderBpm(); persist();
+  if(!keepPhase) softReset();
+  renderBpm(); persist();
 }
 function setOffset(v){
   if(!isFinite(v)) return;
@@ -465,23 +469,33 @@ function setOffset(v){
 function setDownbeat(){ if(playerReady) setOffset(videoNow()); }
 function nudge(d){ setOffset(S.offset + d); }
 
+/* TAP：播放中敲時，用線性迴歸同時算出 BPM 和第 1 拍位置（第一下當作第 1 拍）。
+   敲越多下，手的誤差平均掉越多，比按一次 B 準很多。 */
+let tapHoldUntil = 0;
 function tap(){
   const btn = $('#tap'); btn.classList.add('hit'); setTimeout(() => btn.classList.remove('hit'), 90);
   const onVideo = isPlaying() && ctx && ctx.state === 'running';
   const t = onVideo ? videoNow() : performance.now() / 1000;
   const base = onVideo ? 'v' : 'w';
   const last = taps[taps.length - 1];
-  if(tapBase !== base || (taps.length && (t - last > 2.5 || t <= last))) taps = [];
-  tapBase = base; taps.push(t); if(taps.length > 16) taps.shift();
-  if(taps.length >= 2){
-    const n = taps.length, mi = (n - 1) / 2, mt = taps.reduce((a, b) => a + b, 0) / n;
-    let num = 0, den = 0;
-    for(let i=0;i<n;i++){ num += (i - mi) * (taps[i] - mt); den += (i - mi) * (i - mi); }
-    const slope = num / den;
-    if(slope > 0.15 && slope < 2.5) setBpm(60 / slope);
-    $('#tapInfo').textContent = '已敲 ' + n + ' 下' + (n < 8 ? '，繼續敲…' : '，BPM 已更新。停 2.5 秒會重新開始計算。');
+  if(tapBase !== base || (taps.length && (t - last > 2.5 || t <= last))){ taps = []; tapTotal = 0; }
+  tapBase = base; taps.push(t); tapTotal++; if(taps.length > 16) taps.shift();
+  if(onVideo) tapHoldUntil = performance.now() + 1600;   // 敲的時候先讓節拍器安靜，只聽音樂
+  const n = taps.length;
+  if(n < 2){ $('#tapInfo').textContent = '繼續敲…'; return; }
+  const mi = (n - 1) / 2, mt = taps.reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  for(let i=0;i<n;i++){ num += (i - mi) * (taps[i] - mt); den += (i - mi) * (i - mi); }
+  const slope = num / den;
+  if(!(slope > 0.15 && slope < 2.5)) return;
+  setBpm(60 / slope);
+  if(onVideo && n >= 4){
+    const firstIdx = tapTotal - n;                      // 視窗裡第一下是整串的第幾下
+    const beat1 = (mt - slope * mi) - firstIdx * slope; // 整串第一下（第 1 拍）的擬合時間
+    setOffset(beat1);
+    $('#tapInfo').textContent = '已敲 ' + tapTotal + ' 下，BPM 和第 1 拍已對齊。' + (tapTotal < 8 ? '多敲幾下會更準…' : '停手後節拍器會跟著響。');
   } else {
-    $('#tapInfo').textContent = '繼續敲…';
+    $('#tapInfo').textContent = '已敲 ' + n + ' 下，BPM 已更新。' + (onVideo ? '再敲幾下會一起對齊第 1 拍…' : '影片播放中敲，還會一起對齊第 1 拍。');
   }
 }
 
