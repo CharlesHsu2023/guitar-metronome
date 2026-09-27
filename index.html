@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>吉他跟拍練習台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8ECE8; --panel:#F6F8F5; --panel2:#FFFFFF; --ink:#1A2220; --muted:#5B6863; --line:#CBD3CE;
+  --teal:#1E5D58; --teal-ink:#FFFFFF; --amber:#E0962A; --amber-dim:#F1E4CC; --red:#B4432C;
+  --led-off:#D3D9D4; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#111614; --panel:#1A201E; --panel2:#222927; --ink:#E3E9E6; --muted:#97A39E; --line:#2E3734;
+    --teal:#5DB0A6; --teal-ink:#0D1412; --amber:#F2B04A; --amber-dim:#3A3124; --red:#E47A61;
+    --led-off:#2C3431; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Noto Sans TC",system-ui,"Microsoft JhengHei","PingFang TC",sans-serif;
+  font-size:15px;line-height:1.6;padding-inline:16px;padding-block:20px 48px}
+input,select,button{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:18px}
+
+header{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end;justify-content:space-between}
+h1{font-size:clamp(22px,3vw,30px);font-weight:900;margin:0;letter-spacing:.03em;text-wrap:balance;line-height:1.2}
+.vtitle{color:var(--muted);font-size:14px;margin:4px 0 0}
+.urlrow{display:flex;gap:8px;flex:1 1 340px;max-width:600px}
+.urlrow input{flex:1;min-width:0}
+.field{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px 14px;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--teal)}
+.btn.primary{background:var(--teal);color:var(--teal-ink);border-color:var(--teal);font-weight:700}
+.btn.sm{padding:4px 10px;font-size:13px;font-family:var(--mono)}
+
+.banner{border-radius:10px;padding:12px 16px;font-size:14px;border:1px solid}
+.banner.warn{background:var(--amber-dim);border-color:var(--amber)}
+.banner.err{background:color-mix(in srgb,var(--red) 12%,var(--panel));border-color:var(--red)}
+.banner code{font-family:var(--mono);background:var(--panel2);padding:1px 6px;border-radius:4px;font-size:13px;word-break:break-all}
+
+main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){main{grid-template-columns:minmax(0,1fr)}}
+.stage{display:grid;gap:14px;min-width:0}
+.video{aspect-ratio:16/9;width:100%;max-width:100%;background:#000;border-radius:10px;overflow:hidden}
+.video iframe,#player{width:100%;height:100%;display:block;border:0}
+
+.transport{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.play{width:52px;height:52px;border-radius:50%;background:var(--teal);color:var(--teal-ink);border:0;display:grid;place-items:center;flex:none}
+.play svg{width:22px;height:22px;fill:currentColor}
+.time{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lbl{font-size:12px;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:3px 11px;border-radius:999px;border:1px solid var(--line);background:transparent;font-family:var(--mono);font-size:13px}
+.chip:hover{border-color:var(--teal)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.gate{width:100%;padding:12px;border-radius:10px;border:2px dashed var(--amber);background:var(--amber-dim);font-weight:700}
+.loop{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:10px}
+.loop .time{font-size:13px;color:var(--muted)}
+
+.guide{background:var(--panel);border-radius:10px;padding:14px 18px;font-size:14px;color:var(--muted)}
+.guide h2{font-size:14px;color:var(--ink);margin:0 0 6px}
+.guide ol{margin:0;padding-left:1.3em;display:grid;gap:4px;max-width:65ch}
+.guide b{color:var(--ink)}
+
+.console{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:0;min-width:0}
+.sec{display:grid;gap:10px;padding-block:16px;border-top:1px solid var(--line)}
+.sec:first-child{border-top:0;padding-top:0}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sec-label{font-size:12px;letter-spacing:.12em;color:var(--muted);font-weight:700}
+.muted{color:var(--muted);font-size:13px}
+
+.beatrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.leds{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.led{width:20px;height:20px;border-radius:50%;background:var(--led-off);transition:background .05s,box-shadow .05s}
+.led.down{width:30px;height:30px}
+.led.on{background:var(--amber);box-shadow:0 0 0 4px color-mix(in srgb,var(--amber) 28%,transparent),0 0 18px var(--amber)}
+.counter{text-align:right;line-height:1.1}
+.counter .big{font-family:var(--mono);font-size:34px;font-weight:600;display:block;font-variant-numeric:tabular-nums}
+.counter .small{font-size:12px;color:var(--muted)}
+
+.bpm-input{font-family:var(--mono);font-size:56px;font-weight:600;width:100%;background:transparent;border:0;border-bottom:2px solid var(--line);
+  padding:0;line-height:1.15;font-variant-numeric:tabular-nums;appearance:textfield;-moz-appearance:textfield}
+.bpm-input::-webkit-outer-spin-button,.bpm-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.bpm-input:focus{border-bottom-color:var(--teal);outline:none}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.row .btn{padding:6px 4px;font-family:var(--mono);font-size:14px}
+.tap{width:100%;padding:14px;font-size:20px;font-weight:700;border:2px solid var(--amber);background:var(--amber-dim);border-radius:10px;
+  letter-spacing:.14em;font-family:var(--mono);transition:background .08s}
+.tap small{font-size:12px;letter-spacing:0;opacity:.7}
+.tap.hit{background:var(--amber);color:#1B1408}
+.hint{margin:0;font-size:13px;color:var(--muted)}
+.note{margin:0;font-size:13px;padding:8px 12px;border-left:3px solid var(--teal);background:var(--panel2);border-radius:0 6px 6px 0}
+
+.offrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.offrow input{width:130px;font-family:var(--mono)}
+.wide{width:100%;padding:10px}
+
+.line{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.line input[type=range]{flex:1;max-width:200px;accent-color:var(--teal)}
+.switch{appearance:none;-webkit-appearance:none;width:44px;height:24px;border-radius:999px;background:var(--led-off);position:relative;flex:none;margin:0;transition:background .15s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--panel2);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .15s}
+.switch:checked{background:var(--teal)}
+.switch:checked::after{transform:translateX(20px)}
+.keys{margin:0;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--panel2);color:var(--ink)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>吉他跟拍練習台</h1>
+      <p class="vtitle" id="vtitle">載入影片中…</p>
+    </div>
+    <form class="urlrow" id="urlForm" autocomplete="off">
+      <input id="url" class="field" type="text" placeholder="貼上任何 YouTube 網址，例如 https://youtu.be/…" aria-label="YouTube 網址">
+      <button class="btn primary" type="submit">載入</button>
+    </form>
+  </header>
+
+  <div class="banner warn" id="fileWarn" hidden>
+    你是直接開啟檔案（file://），YouTube 可能會拒絕播放（錯誤 153）。請在這個檔案所在的資料夾執行
+    <code>python -m http.server 8000</code>，再用瀏覽器開
+    <code>http://localhost:8000/index.html</code>。VS Code 的 Live Server 也可以。
+  </div>
+  <div class="banner err" id="err" hidden></div>
+
+  <main>
+    <section class="stage">
+      <div class="video"><div id="player"></div></div>
+
+      <div class="transport">
+        <button class="play" id="play" aria-label="播放">
+          <svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4.5v15l13-7.5z"/></svg>
+        </button>
+        <button class="btn" id="back5" type="button">−5 秒</button>
+        <span class="time" id="time">0:00.0 / 0:00</span>
+        <div class="grp"><span class="lbl">速度</span><div class="chips" id="rates"></div></div>
+      </div>
+
+      <button class="gate" id="gate" type="button" hidden>點這裡開啟節拍器聲音（瀏覽器規定要先在頁面上點一下）</button>
+
+      <div class="loop">
+        <span class="lbl">A-B 循環</span>
+        <button class="btn sm" id="setA" type="button">設 A</button>
+        <button class="btn sm" id="setB" type="button">設 B</button>
+        <button class="btn sm" id="clrLoop" type="button">清除</button>
+        <span class="time" id="loopInfo">未設定</span>
+      </div>
+
+      <aside class="guide">
+        <h2>對拍步驟</h2>
+        <ol>
+          <li>播放影片，跟著大鼓或小鼓按 <b>TAP</b>（或鍵盤 <kbd>T</kbd>）連敲 8 下以上，BPM 會自動算出來。</li>
+          <li>把影片停在第一個重拍（通常是鼓或主歌第一個和弦進來的那一下），按 <b>設為第 1 拍</b>（<kbd>B</kbd>）。</li>
+          <li>播放聽聽看，用 ±10 ms 微調，直到節拍器和鼓聲疊在一起。</li>
+          <li>想放慢練習就切 0.75× 或 0.5×，節拍器會跟著一起變慢。</li>
+        </ol>
+      </aside>
+    </section>
+
+    <section class="console" aria-label="節拍器">
+      <div class="sec">
+        <div class="beatrow">
+          <div class="leds" id="leds"></div>
+          <div class="counter"><span class="big" id="beatNo">–</span><span class="small" id="barNo">尚未開始</span></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-head"><span class="sec-label">BPM</span><span class="muted" id="eff">原速</span></div>
+        <input id="bpm" class="bpm-input" type="number" step="0.1" min="30" max="300" inputmode="decimal" aria-label="每分鐘拍數">
+        <div class="row">
+          <button class="btn" type="button" data-bpm="-1">−1</button>
+          <button class="btn" type="button" data-bpm="-0.1">−0.1</button>
+          <button class="btn" type="button" data-bpm="0.1">+0.1</button>
+          <button class="btn" type="button" data-bpm="1">+1</button>
+        </div>
+        <button class="tap" id="tap" type="button">TAP <small>(T)</small></button>
+        <p class="hint" id="tapInfo">跟著鼓點連敲 8 下以上，越多下越準。</p>
+        <p class="note" id="note" hidden></p>
+      </div>
+
+      <div class="sec">
+        <span class="sec-label">每小節拍數</span>
+        <div class="chips" id="meter">
+          <button class="chip" type="button" data-bpb="2">2 拍</button>
+          <button class="chip" type="button" data-bpb="3">3 拍</button>
+          <button class="chip" type="button" data-bpb="4">4 拍</button>
+          <button class="chip" type="button" data-bpb="6">6 拍</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <span class="sec-label">第 1 拍位置</span>
+        <div class="offrow">
+          <input id="offset" class="field" type="number" step="0.001" min="0" aria-label="第 1 拍在影片中的秒數">
+          <span>秒</span>
+          <span class="muted time" id="offFmt"></span>
+        </div>
+        <button class="btn primary wide" id="down" type="button">把目前位置設為第 1 拍（B）</button>
+        <div class="row">
+          <button class="btn" type="button" data-off="-0.05">−50ms</button>
+          <button class="btn" type="button" data-off="-0.01">−10ms</button>
+          <button class="btn" type="button" data-off="0.01">+10ms</button>
+          <button class="btn" type="button" data-off="0.05">+50ms</button>
+        </div>
+        <p class="hint">節拍器從這一點開始響。節拍器比鼓聲早就按「+」，晚就按「−」。樂團沒錄 click 的老歌可能會慢慢飄，到新段落再按一次 B 重新對齊。</p>
+      </div>
+
+      <div class="sec">
+        <label class="line"><span>節拍器聲音</span><input type="checkbox" class="switch" id="metroOn"></label>
+        <label class="line"><span>音色</span>
+          <select id="sound" class="field">
+            <option value="wood">木魚</option>
+            <option value="stick">鼓棒</option>
+            <option value="beep">電子嗶聲</option>
+          </select>
+        </label>
+        <label class="line"><span>音量</span><input type="range" id="vol" min="0" max="1.5" step="0.01"></label>
+        <label class="line"><span>第 1 拍重音</span><input type="checkbox" class="switch" id="accent"></label>
+      </div>
+
+      <p class="keys">
+        <kbd>空白</kbd> 播放／暫停　<kbd>T</kbd> 敲拍　<kbd>B</kbd> 設第 1 拍　<kbd>M</kbd> 開關聲音　<kbd>[</kbd> <kbd>]</kbd> 微調 10 ms　<kbd>←</kbd> <kbd>→</kbd> 前後 5 秒<br>
+        快捷鍵要在影片以外的地方點一下才會生效。
+      </p>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+
+/* ---------- 參考資料 ---------- */
+const PRESETS = {
+  qu_FSptjRic: { bpm:77, bpb:4, offset:0,
+    note:'參考值：海闊天空約 77 BPM、4/4 拍、F 調。MV 版本可能略有差異，請再用 TAP 校正，並設定第 1 拍。' }
+};
+const DEFAULT_ID = 'qu_FSptjRic';
+
+/* ---------- 儲存 ---------- */
+function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+/* ---------- 狀態 ---------- */
+const S = { bpm:100, bpb:4, offset:0 };                         // 每支影片
+const G = Object.assign({ sound:'wood', vol:0.8, accent:true, metroOn:true }, load('ytm:g', {})); // 全域
+let videoId = load('ytm:last', DEFAULT_ID) || DEFAULT_ID;
+let player = null, playerReady = false, state = -1;
+let ctx = null, master = null, noise = null;
+let anchorV = null, anchorA = 0, anchorRate = 1, lastRaw = null, lastBeat = null;
+let visQ = [], scheduled = [], taps = [], tapBase = null;
+let loopA = null, loopB = null;
+const PLAYING = 1;
+
+/* ---------- 工具 ---------- */
+function fmt(t){
+  if(!isFinite(t) || t < 0) t = 0;
+  const m = Math.floor(t/60), s = t - m*60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+}
+function fmtShort(t){ if(!isFinite(t)||t<0) t=0; const m=Math.floor(t/60), s=Math.floor(t-m*60); return m+':'+(s<10?'0':'')+s; }
+function parseId(str){
+  str = (str || '').trim();
+  if(/^[\w-]{11}$/.test(str)) return str;
+  try{
+    const u = new URL(str.startsWith('http') ? str : 'https://' + str);
+    if(u.hostname.endsWith('youtu.be')){ const id = u.pathname.slice(1, 12); if(/^[\w-]{11}$/.test(id)) return id; }
+    const v = u.searchParams.get('v'); if(v && /^[\w-]{11}/.test(v)) return v.slice(0, 11);
+    const m = u.pathname.match(/\/(?:embed|shorts|live|v)\/([\w-]{11})/); if(m) return m[1];
+  }catch(e){}
+  return null;
+}
+function persist(){ if(videoId) save('ytm:v:' + videoId, S); save('ytm:g', G); }
+function isPlaying(){ return playerReady && state === PLAYING; }
+function rate(){ try{ return player.getPlaybackRate() || 1; }catch(e){ return 1; } }
+
+function showError(msg){ const e = $('#err'); e.textContent = msg; e.hidden = !msg; }
+
+/* ---------- 音訊 ---------- */
+function ensureAudio(){
+  if(!ctx){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    ctx = new AC({ latencyHint:'interactive' });
+    master = ctx.createGain(); master.gain.value = G.vol; master.connect(ctx.destination);
+    ctx.onstatechange = updateGate;
+    const len = Math.floor(ctx.sampleRate * 0.1);
+    noise = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = noise.getChannelData(0); for(let i=0;i<len;i++) d[i] = Math.random()*2 - 1;
+  }
+  if(ctx.state !== 'running') ctx.resume().then(updateGate, ()=>{});
+  updateGate();
+}
+function updateGate(){
+  $('#gate').hidden = !(isPlaying() && G.metroOn && (!ctx || ctx.state !== 'running'));
+}
+function env(g, t, peak, dur){
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+}
+function click(when, k){
+  const acc = G.accent && (k % S.bpb === 0);
+  const g = ctx.createGain(); g.connect(master);
+  let src;
+  if(G.sound === 'beep'){
+    src = ctx.createOscillator(); src.type = 'square';
+    src.frequency.setValueAtTime(acc ? 1760 : 1320, when);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3500;
+    src.connect(lp); lp.connect(g); env(g, when, acc ? 0.45 : 0.28, 0.05);
+  } else if(G.sound === 'stick'){
+    src = ctx.createBufferSource(); src.buffer = noise;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = acc ? 3800 : 2600; bp.Q.value = 1.3;
+    src.connect(bp); bp.connect(g); env(g, when, acc ? 1.6 : 1.0, 0.035);
+  } else {
+    src = ctx.createOscillator(); src.type = 'sine';
+    const f = acc ? 1800 : 1200;
+    src.frequency.setValueAtTime(f, when);
+    src.frequency.exponentialRampToValueAtTime(f * 0.55, when + 0.06);
+    src.connect(g); env(g, when, acc ? 1.0 : 0.6, 0.09);
+  }
+  src.start(when); src.stop(when + 0.15);
+  scheduled.push({ node:src, when });
+}
+function cancelScheduled(){
+  if(ctx){ const now = ctx.currentTime; for(const x of scheduled){ if(x.when > now){ try{ x.node.stop(); }catch(e){} } } }
+  scheduled = [];
+}
+function softReset(){ lastBeat = null; visQ = []; cancelScheduled(); }
+function hardReset(){ anchorV = null; softReset(); }
+
+/* 影片時間：以 AudioContext 時鐘外推，並慢慢修正到 YouTube 回報的時間 */
+function videoNow(){
+  const raw = player.getCurrentTime();
+  if(!isPlaying() || !ctx || ctx.state !== 'running') return raw;
+  const a = ctx.currentTime, r = rate();
+  if(anchorV === null || r !== anchorRate){ anchorV = raw; anchorA = a; anchorRate = r; lastRaw = raw; return raw; }
+  if(raw !== lastRaw){
+    const diff = raw - (anchorV + (a - anchorA) * r);
+    if(Math.abs(diff) > 0.25){ softReset(); anchorV = raw; anchorA = a; lastRaw = raw; return raw; }
+    anchorV += diff * 0.08; lastRaw = raw;
+  }
+  return anchorV + (a - anchorA) * r;
+}
+
+/* 排程器：每 25ms 看 150ms 以內的拍點 */
+function tick(){
+  if(!playerReady) return;
+  if(isPlaying() && loopA !== null && loopB !== null && loopB > loopA){
+    if(player.getCurrentTime() >= loopB){ player.seekTo(loopA, true); hardReset(); return; }
+  }
+  if(!isPlaying() || !ctx || ctx.state !== 'running') return;
+  const vt = videoNow(), r = anchorRate || 1, period = 60 / S.bpm, now = ctx.currentTime;
+  const horizon = vt + 0.15 * r;
+  let k = lastBeat === null ? Math.max(0, Math.ceil((vt - S.offset) / period - 1e-6)) : lastBeat + 1;
+  for(let guard = 0; guard < 16; guard++){
+    const bt = S.offset + k * period;
+    if(bt >= horizon) break;
+    const when = now + (bt - vt) / r;
+    if(when >= now - 0.02){
+      if(G.metroOn) click(Math.max(when, now), k);
+      visQ.push({ when, k });
+    }
+    lastBeat = k; k++;
+  }
+  if(scheduled.length > 32) scheduled = scheduled.filter(x => x.when > now - 0.5);
+}
+setInterval(tick, 25);
+
+/* ---------- 畫面 ---------- */
+let leds = [];
+function renderLeds(){
+  const box = $('#leds'); box.textContent = ''; leds = [];
+  for(let i=0;i<S.bpb;i++){ const s = document.createElement('span'); s.className = 'led' + (i===0 ? ' down' : ''); box.appendChild(s); leds.push(s); }
+  document.querySelectorAll('#meter .chip').forEach(c => c.setAttribute('aria-pressed', String(+c.dataset.bpb === S.bpb)));
+}
+function flash(k){
+  const i = k % S.bpb, l = leds[i];
+  if(l){ l.classList.add('on'); l._off = performance.now() + 110; }
+  $('#beatNo').textContent = (i + 1);
+  $('#barNo').textContent = '第 ' + (Math.floor(k / S.bpb) + 1) + ' 小節';
+}
+function renderBpm(){
+  const b = $('#bpm'); if(document.activeElement !== b) b.value = String(S.bpm);
+  const r = playerReady ? rate() : 1;
+  $('#eff').textContent = r === 1 ? '原速' : ('實際聽到 ' + (S.bpm * r).toFixed(1) + ' BPM（' + r + '×）');
+}
+function renderOffset(){
+  const o = $('#offset'); if(document.activeElement !== o) o.value = S.offset.toFixed(3);
+  $('#offFmt').textContent = '＝ ' + fmt(S.offset);
+}
+function renderToggles(){
+  $('#metroOn').checked = G.metroOn; $('#accent').checked = G.accent;
+  $('#sound').value = G.sound; $('#vol').value = G.vol;
+}
+function renderLoop(){
+  $('#loopInfo').textContent = (loopA === null && loopB === null) ? '未設定'
+    : 'A ' + (loopA === null ? '—' : fmt(loopA)) + '　B ' + (loopB === null ? '—' : fmt(loopB));
+}
+function renderRates(){
+  const box = $('#rates'); box.textContent = '';
+  let list = [0.5, 0.75, 1, 1.25];
+  try{ const av = player.getAvailablePlaybackRates(); if(av && av.length) list = av.filter(r => r >= 0.25 && r <= 1.5); }catch(e){}
+  const cur = rate();
+  for(const r of list){
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = r + '×';
+    b.setAttribute('aria-pressed', String(r === cur));
+    b.onclick = () => { player.setPlaybackRate(r); };
+    box.appendChild(b);
+  }
+  renderBpm();
+}
+function renderPlay(){
+  const p = isPlaying();
+  $('#playIcon').innerHTML = p ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+  $('#play').setAttribute('aria-label', p ? '暫停' : '播放');
+}
+function showTitle(){
+  try{ const d = player.getVideoData(); if(d && d.title) $('#vtitle').textContent = d.title + (d.author ? '　·　' + d.author : ''); }catch(e){}
+}
+let lastTimeStr = '';
+function frame(){
+  if(ctx && visQ.length){
+    const now = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+    while(visQ.length && visQ[0].when <= now) flash(visQ.shift().k);
+  }
+  const n = performance.now();
+  for(const l of leds){ if(l._off && n > l._off){ l.classList.remove('on'); l._off = 0; } }
+  if(playerReady){
+    let s = '';
+    try{ s = fmt(player.getCurrentTime()) + ' / ' + fmtShort(player.getDuration()); }catch(e){}
+    if(s !== lastTimeStr){ $('#time').textContent = s; lastTimeStr = s; }
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- 設定 ---------- */
+function setBpm(v){
+  v = Math.round(v * 10) / 10;
+  if(!isFinite(v)) return;
+  S.bpm = Math.min(300, Math.max(30, v));
+  softReset(); renderBpm(); persist();
+}
+function setOffset(v){
+  if(!isFinite(v)) return;
+  S.offset = Math.max(0, Math.round(v * 1000) / 1000);
+  softReset(); renderOffset(); persist();
+}
+function setDownbeat(){ if(playerReady) setOffset(videoNow()); }
+function nudge(d){ setOffset(S.offset + d); }
+
+function tap(){
+  const btn = $('#tap'); btn.classList.add('hit'); setTimeout(() => btn.classList.remove('hit'), 90);
+  const onVideo = isPlaying() && ctx && ctx.state === 'running';
+  const t = onVideo ? videoNow() : performance.now() / 1000;
+  const base = onVideo ? 'v' : 'w';
+  const last = taps[taps.length - 1];
+  if(tapBase !== base || (taps.length && (t - last > 2.5 || t <= last))) taps = [];
+  tapBase = base; taps.push(t); if(taps.length > 16) taps.shift();
+  if(taps.length >= 2){
+    const n = taps.length, mi = (n - 1) / 2, mt = taps.reduce((a, b) => a + b, 0) / n;
+    let num = 0, den = 0;
+    for(let i=0;i<n;i++){ num += (i - mi) * (taps[i] - mt); den += (i - mi) * (i - mi); }
+    const slope = num / den;
+    if(slope > 0.15 && slope < 2.5) setBpm(60 / slope);
+    $('#tapInfo').textContent = '已敲 ' + n + ' 下' + (n < 8 ? '，繼續敲…' : '，BPM 已更新。停 2.5 秒會重新開始計算。');
+  } else {
+    $('#tapInfo').textContent = '繼續敲…';
+  }
+}
+
+/* ---------- 影片 ---------- */
+function applyVideoSettings(id){
+  const saved = load('ytm:v:' + id, null), p = PRESETS[id];
+  Object.assign(S, saved || (p ? { bpm:p.bpm, bpb:p.bpb, offset:p.offset } : { bpm:100, bpb:4, offset:0 }));
+  const note = $('#note'); note.textContent = p ? p.note : ''; note.hidden = !p;
+  loopA = loopB = null; taps = [];
+  renderLeds(); renderBpm(); renderOffset(); renderLoop();
+  $('#beatNo').textContent = '–'; $('#barNo').textContent = '尚未開始';
+}
+function loadVideo(id){
+  videoId = id; save('ytm:last', id);
+  $('#url').value = 'https://youtu.be/' + id;
+  showError(''); hardReset(); applyVideoSettings(id);
+  $('#vtitle').textContent = '載入影片中…';
+  if(player && playerReady) player.cueVideoById(id);
+}
+const ERR = {
+  2:'網址或影片 ID 不正確，請再確認一次。',
+  5:'這支影片無法用網頁播放器播放。',
+  100:'找不到這支影片，可能已刪除或設為私人。',
+  101:'影片擁有者禁止在其他網站播放。請換一支影片，例如同一首歌的其他上傳版本。',
+  150:'影片擁有者禁止在其他網站播放。請換一支影片，例如同一首歌的其他上傳版本。',
+  153:'YouTube 拒絕播放，因為網頁沒有來源網址。請用本機伺服器（http://localhost）開啟，不要直接雙擊檔案。'
+};
+function createPlayer(){
+  const vars = { playsinline:1, rel:0 };
+  if(location.protocol.startsWith('http')) vars.origin = location.origin;
+  player = new YT.Player('player', {
+    videoId, playerVars: vars,
+    events:{
+      onReady(){ playerReady = true; renderRates(); showTitle(); renderPlay(); },
+      onStateChange(e){
+        state = e.data; hardReset(); taps = [];
+        if(state === PLAYING){ ensureAudio(); showError(''); }
+        if(state === PLAYING || state === 5 || state === -1) showTitle();
+        renderPlay(); updateGate();
+      },
+      onPlaybackRateChange(){ hardReset(); renderRates(); },
+      onError(e){ showError(ERR[e.data] || ('YouTube 播放器錯誤（代碼 ' + e.data + '）。')); }
+    }
+  });
+}
+window.onYouTubeIframeAPIReady = createPlayer;
+setTimeout(() => {
+  if(!window.YT || !window.YT.Player) showError('無法載入 YouTube 播放器。請確認這台電腦可以連到 youtube.com（公司網路可能擋掉）。');
+}, 10000);
+
+/* ---------- 事件 ---------- */
+document.addEventListener('pointerdown', ensureAudio, true);
+$('#urlForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const id = parseId($('#url').value);
+  if(!id){ showError('看不懂這個網址。請貼 youtube.com/watch?v=… 或 youtu.be/… 格式的連結。'); return; }
+  loadVideo(id);
+});
+function togglePlay(){
+  if(!playerReady) return;
+  ensureAudio();
+  if(isPlaying()) player.pauseVideo(); else player.playVideo();
+}
+function seekRel(d){ if(!playerReady) return; player.seekTo(Math.max(0, player.getCurrentTime() + d), true); hardReset(); }
+$('#play').onclick = togglePlay;
+$('#back5').onclick = () => seekRel(-5);
+$('#gate').onclick = ensureAudio;
+$('#tap').onclick = tap;
+$('#down').onclick = setDownbeat;
+document.querySelectorAll('[data-bpm]').forEach(b => b.onclick = () => setBpm(S.bpm + parseFloat(b.dataset.bpm)));
+document.querySelectorAll('[data-off]').forEach(b => b.onclick = () => nudge(parseFloat(b.dataset.off)));
+document.querySelectorAll('#meter .chip').forEach(b => b.onclick = () => { S.bpb = +b.dataset.bpb; softReset(); renderLeds(); persist(); });
+$('#bpm').addEventListener('change', e => setBpm(parseFloat(e.target.value)));
+$('#bpm').addEventListener('blur', renderBpm);
+$('#offset').addEventListener('change', e => setOffset(parseFloat(e.target.value)));
+$('#offset').addEventListener('blur', renderOffset);
+$('#metroOn').onchange = e => { G.metroOn = e.target.checked; if(!G.metroOn) cancelScheduled(); lastBeat = null; persist(); updateGate(); };
+$('#accent').onchange = e => { G.accent = e.target.checked; persist(); };
+$('#sound').onchange = e => { G.sound = e.target.value; persist(); };
+$('#vol').oninput = e => { G.vol = parseFloat(e.target.value); if(master) master.gain.value = G.vol; persist(); };
+$('#setA').onclick = () => { if(playerReady){ loopA = player.getCurrentTime(); if(loopB !== null && loopB <= loopA) loopB = null; renderLoop(); } };
+$('#setB').onclick = () => { if(playerReady){ const t = player.getCurrentTime(); if(loopA === null || t > loopA){ loopB = t; renderLoop(); } } };
+$('#clrLoop').onclick = () => { loopA = loopB = null; renderLoop(); };
+
+document.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if(tag === 'input' || tag === 'select' || tag === 'textarea') return;
+  if(e.metaKey || e.ctrlKey || e.altKey) return;
+  switch(e.key){
+    case ' ': e.preventDefault(); togglePlay(); break;
+    case 't': case 'T': tap(); break;
+    case 'b': case 'B': setDownbeat(); break;
+    case 'm': case 'M': $('#metroOn').click(); break;
+    case '[': nudge(-0.01); break;
+    case ']': nudge(0.01); break;
+    case 'ArrowLeft': e.preventDefault(); seekRel(-5); break;
+    case 'ArrowRight': e.preventDefault(); seekRel(5); break;
+  }
+});
+
+/* ---------- 啟動 ---------- */
+if(location.protocol === 'file:') $('#fileWarn').hidden = false;
+renderToggles();
+$('#url').value = 'https://youtu.be/' + videoId;
+applyVideoSettings(videoId);
+const tag = document.createElement('script');
+tag.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(tag);
+})();
+</script>
+</body>
+</html>
